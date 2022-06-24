@@ -30,6 +30,10 @@ void setup() {
 }
 
 void loop() {
+  /**TODO: bagian nunggu available mungkin gak begitu perlu
+   * deserialize mungkin dibiarkan jalan terus?
+   * atau pake if... else {return;}
+   */
   while (!Serial2.available()) {
     ESP_LOGV("SERIAL", "WAITING UART INPUT FROM PV");
     delay(100);
