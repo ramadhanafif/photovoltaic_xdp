@@ -1,8 +1,13 @@
-/**Program baca data PV dari uart dan parsing per variabel
-   Board:ESP8266
-
-   20-JUL-2022: created
-*/
+/**
+ * @file serial_read_PV.ino
+ * @author Muhammad Afif Ramadhan 
+ * @brief Read data from PV then parse for each members
+ * Using esp8266 board
+ * @version 1
+ * @date 2022-06-20
+ * 
+ * 
+ */
 
 // #define DEBUG_VERBOSE
 #define WIFI_CONNECTION
