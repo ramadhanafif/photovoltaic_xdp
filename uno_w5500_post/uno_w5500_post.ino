@@ -16,7 +16,6 @@ Content-Type: application/json
 Content-Length: 78
 
 {"idUser":31,"VA":400,"VR":0,"mA":10,"R":100,"S":100,"PF":10,"T":1024,"t":10}
-HTTP/1.1 200 OK
 */
 
 #include <Ethernet2.h>
