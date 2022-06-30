@@ -12,26 +12,28 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 
-const char* ssid = "Smart Xirka";
-const char* password = "EngInEEr@30";
+const char *ssid = "Smart Xirka";
+const char *password = "EngInEEr@30";
 
-//Your Domain name with URL path or IP address with path
+// Your Domain name with URL path or IP address with path
 String serverName = "http://20.230.176.6:2078/esp";
 
 // the following variables are unsigned longs because the time, measured in
 // milliseconds, will quickly become a bigger number than can be stored in an int.
 unsigned long lastTime = 0;
 // Timer set to 10 minutes (600000)
-//unsigned long timerDelay = 600000;
+// unsigned long timerDelay = 600000;
 // Set timer to 5 seconds (5000)
 unsigned long timerDelay = 5000;
 
-void setup() {
+void setup()
+{
   Serial.begin(115200);
 
   WiFi.begin(ssid, password);
   Serial.println("Connecting");
-  while (WiFi.status() != WL_CONNECTED) {
+  while (WiFi.status() != WL_CONNECTED)
+  {
     delay(500);
     Serial.print(".");
   }
@@ -44,14 +46,16 @@ void setup() {
 
 #define SERVER_IP "20.230.176.6:2078"
 
-void loop() {
-  if ((WiFi.status() == WL_CONNECTED)) {
+void loop()
+{
+  if ((WiFi.status() == WL_CONNECTED))
+  {
     WiFiClient client;
     HTTPClient http;
 
     Serial.print("[HTTP] POST\n");
     // configure traged server and url
-    http.begin(client, "http://" SERVER_IP "/esp/"); //HTTP
+    http.begin(client, "http://" SERVER_IP "/esp/"); // HTTP
     http.addHeader("Content-Type", "application/json");
 
     // Serial.print("[HTTP] POST...\n");
@@ -59,7 +63,8 @@ void loop() {
     int httpCode = http.POST("{\"VA\": 9999, \"VR\": 0, \"mA\": 0, \"R\": 0, \"S\": 0, \"PF\": 0, \"T\": 1993, \"t\": 32, \"idCustomer\": 10987654321}");
 
     // httpCode will be negative on error
-    if (httpCode > 0) {
+    if (httpCode > 0)
+    {
       // HTTP header has been send and Server response header has been handled
       Serial.printf("[HTTP] response code: %d\n", httpCode);
 
@@ -71,7 +76,8 @@ void loop() {
       //   Serial.println(">>");
       // }
     }
-    else {
+    else
+    {
       Serial.printf("[HTTP] POST failed, error: %s\n", http.errorToString(httpCode).c_str());
     }
 
