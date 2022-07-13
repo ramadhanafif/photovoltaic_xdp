@@ -3,8 +3,11 @@
 #include <SoftwareSerial.h>
 
 // Measurement mode
-#define AC 0
-#define DC 1
+enum measurementMode : uint8_t
+{
+  AC,
+  DC
+};
 
 // Register Definition
 enum reg_chanA : uint8_t
@@ -59,15 +62,24 @@ enum reg_chanA : uint8_t
   ADDeviceID = 0x7f
 };
 
-// Setting Current Channel A analog gain selection, default 16x
-#define ADSYSCON_PGAIA_Pos 0
-// Setting Voltage channel analog gain selection
-#define ADSYSCON_PGAU_Pos 2
-// Setting Disable/Enable High Pass Filter for DC Measurement
-#define ADEMUCON_HPFIOFF_Pos 6 // En=0;Dis=1; CURRENT digital high-pass filter
-#define ADEMUCON_HPFUOFF_Pos 5 // En=0;Dis=1; VOLTAGE digital high-pass filter
+// Setting Current Channel A (maybe B too?) analog gain selection, default 16x
+enum bitPosGainSelect_chanA : uint8_t
+{
+  ADSYSCON_PGAIA_Pos = 0, // Current gain
+  ADSYSCON_PGAU_Pos = 2   // Voltage gain
+};
 
-#define SPECIAL_CMD 0xEA
+// Setting Disable/Enable High Pass Filter for DC Measurement channel A (maybe B too?)
+enum bitPosHPFSelect_chanA : uint8_t
+{
+  ADEMUCON_HPFIOFF_Pos = 6, // En=0;Dis=1; CURRENT digital high-pass filter
+  ADEMUCON_HPFUOFF_Pos = 5  // En=0;Dis=1; VOLTAGE digital high-pass filter
+};
+
+enum spec_cmd : uint8_t
+{
+  SPEC_CMD = 0xEA
+};
 
 class RN8209C
 {
@@ -81,14 +93,14 @@ public:
    * @param tx_pin GPIO pin used for TX and RESET
    * @param mode measuring AC or DC. Defaults to AC.
    */
-  RN8209C(int8_t rx_pin, int8_t tx_pin, uint8_t mode = AC);
+  RN8209C(int8_t rx_pin, int8_t tx_pin, measurementMode mode = AC);
 
   /**
    * @brief Starts UART with the following configuration:
    * BAUD: 4800
    * PARITY: even
    */
-  void uart_start();
+  int32_t uart_start();
 
   /**
    * @brief Disable UART
@@ -141,7 +153,8 @@ public:
    *
    * @return float
    */
-  float get_energy();
+  float get_AccumulatedEnergy();
+  float get_DeltaEnergy();
 
   /**
    * @brief Get measured VRMS in V
