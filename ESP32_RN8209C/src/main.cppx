@@ -1,0 +1,230 @@
+#include <Arduino.h>
+#include "rn8209c.h"
+
+// TODO: tes dengan softwareserial
+// TODO: buat fungsi yang nerima software serial as class def
+
+void readCalibRegs()
+{
+  Serial.println("Reading calibration settings");
+  /****** Vars for printing out register values *****/
+  unsigned char bacaADSYSCON[3];
+  unsigned char bacaADPhsA[2];
+  unsigned char bacaADAPOSA[3];
+  unsigned char bacaADGPQA[3];
+  unsigned char bacaADRPOSA[3];
+  unsigned char bacaADQPHSCAL[3];
+  unsigned char bacaADEMUCON[3];
+
+  uint16_t sysconRead;
+  int16_t offsetActiveRead;
+  int16_t gainActiveRead;
+  int16_t offsetReactiveRead;
+  int16_t phaseReactiveRead;
+  int16_t ADEMUCONRead;
+
+  Serial.print(rn8209c_read(ADSYSCON, bacaADSYSCON, 3 - 1));
+  sysconRead = arr2raw(bacaADSYSCON, 2);
+  Serial.print("ADSYSCON (0x1602) : 0x");
+  Serial.println(sysconRead, HEX);
+
+  rn8209c_read(ADPhsA, bacaADPhsA, 2 - 1);
+  Serial.print("ADPhsA (40) : ");
+  Serial.println((signed char)bacaADPhsA[0]);
+
+  rn8209c_read(ADAPOSA, bacaADAPOSA, 3 - 1);
+  offsetActiveRead = arr2raw(bacaADAPOSA, 3 - 1);
+  Serial.print("ADAPOSA (0) : ");
+  Serial.println(offsetActiveRead);
+
+  rn8209c_read(ADGPQA, bacaADGPQA, 3 - 1);
+  gainActiveRead = arr2raw(bacaADGPQA, 3 - 1);
+  Serial.print("ADGPQA (12640) : ");
+  Serial.println(gainActiveRead);
+
+  rn8209c_read(ADRPOSA, bacaADRPOSA, 3 - 1);
+  offsetReactiveRead = arr2raw(bacaADRPOSA, 3 - 1);
+  Serial.print("ADRPOSA (0) : ");
+  Serial.println(offsetReactiveRead);
+
+  rn8209c_read(ADQPHSCAL, bacaADQPHSCAL, 3 - 1);
+  phaseReactiveRead = arr2raw(bacaADQPHSCAL, 3 - 1);
+  Serial.print("ADQPHSCAL (-3072) : ");
+  Serial.println(phaseReactiveRead);
+
+  rn8209c_read(ADEMUCON, bacaADEMUCON, 3 - 1);
+  ADEMUCONRead = arr2raw(bacaADEMUCON, 3 - 1);
+  Serial.print("ADEMUCON (0x3) : 0x");
+  Serial.println(ADEMUCONRead, HEX);
+}
+
+void setCalibRegs()
+{
+  // Write settings
+  unsigned char writeEnable[] = {0xE5};
+  unsigned char writeProtect[] = {0xDC};
+
+  // Analog Gain Setup
+  unsigned char sysconByte[] = {0x16, (0b10 << ADSYSCON_PGAIA_Pos)};
+
+  // Energy CLR
+  unsigned char emuconEnergyCLRByte[] = {0b01 << 7, 0x03 << 0}; // 14 April 2022
+
+  // Offset Correction
+  unsigned long offsetActive = 0;
+  unsigned char offsetActiveByte[] = {(uint8_t)(offsetActive >> 8), (uint8_t)offsetActive};
+
+  // Gain Correction
+  const int16_t gainActive = 12640; // 28 Maret
+  unsigned char gainActiveByte[] = {(uint8_t)(gainActive >> 8), (uint8_t)gainActive};
+
+  // Phase Correction
+  unsigned char phaseByte[] = {40};
+
+  // Reactive Power Correction
+  const int16_t offsetReactive = 0; // 28 Maret
+  unsigned char offsetReactiveByte[] = {(uint8_t)(offsetReactive >> 8), (uint8_t)offsetReactive};
+
+  const int16_t phaseReactive = -3072; // 28 Maret
+  unsigned char phaseReactiveByte[] = {(uint8_t)(phaseReactive >> 8), (uint8_t)phaseReactive};
+
+  // Enter calibration settings
+  Serial.println("Calibration setting");
+
+  rn8209c_write(WriteEn, writeEnable, 1);
+  // baca_tulis_address(ADEMUCON, 2, emuconEnergyCLRByte, true);
+  rn8209c_write(ADSYSCON, sysconByte, 2);
+  // write(ADSYSCON, 2, sysconByte);
+  rn8209c_write(ADAPOSA, offsetActiveByte, 2);
+  rn8209c_write(ADGPQA, gainActiveByte, 2);
+  rn8209c_write(ADPhsA, phaseByte, 1);
+  rn8209c_write(ADRPOSA, offsetReactiveByte, 2);
+  rn8209c_write(ADQPHSCAL, phaseReactiveByte, 2);
+  rn8209c_write(WriteEn, writeProtect, 1); // Disable further writing
+}
+
+void setup()
+{
+  // Serial Master
+  Serial.begin(115200);
+  Serial.println("Halo");
+  rn8209c_rstRX();
+
+  // Serial Slave (kalo pake Hardware Serial)
+  // emzerial.begin(4800, SWSERIAL_8E1); // Parity Even, Hardware Serial
+  swserialbegin();
+  delay(1000);
+  Serial.println();
+
+  setCalibRegs();
+  readCalibRegs();
+}
+int xx = 0;
+
+void loop()
+{
+  delay(1000);
+  float y;
+  uint8_t buffe[5];
+
+  int32_t val;
+
+  Serial.print(xx++);
+  Serial.print(" ");
+
+  // Baca Energi Aktif (Hasil Increment)
+  while (rn8209c_read(ADEnergyP, buffe, 3)) // Active Energy A
+  {
+    delay(1000);
+  };
+  int32_t energyPRaw = arr2raw(buffe, 3);
+  y = (0.000083 * energyPRaw) - 0.000131;
+  Serial.print("kWhr= ");
+  Serial.print(y, 4);
+  Serial.print(' ');
+
+  // Baca Tegangan RMS
+  while (rn8209c_read(ADURMS, buffe, 3))
+  {
+    delay(1000);
+  };
+  val = arr2raw(buffe, 3);
+  Serial.print("V_RMS= ");
+  y = (val - 181) * 0.000223485;
+  Serial.print(y, 2);
+  Serial.print(' ');
+  // Serial.println("\nend");
+  // while (1)
+  //   ;
+  // Baca Arus RMS
+  while (rn8209c_read(ADIARMS, buffe, 3))
+  {
+    delay(1000);
+  }
+  val = arr2raw(buffe, 3);
+  Serial.print("I_RMS= ");
+  y = (val)*0.0000028924337884678;
+  Serial.print(y, 4);
+  Serial.print(' ');
+
+  // Baca Active Power
+  while (rn8209c_read(ADPowerPA, buffe, 4))
+  {
+    delay(1000);
+  }
+  int32_t activeRaw = arr2raw(buffe, 4);
+  Serial.print("Watt= ");
+  y = (float)activeRaw / (1L << 16);
+  Serial.print(y, 2);
+  Serial.print(' ');
+
+  // Baca Reactive Power
+  while (rn8209c_read(ADPowerQ, buffe, 4))
+  {
+    delay(1000);
+  }
+  int32_t reactiveRaw = arr2raw(buffe, 4);
+  Serial.print(' ');
+  Serial.print("VAR= ");
+  y = (float)reactiveRaw / (1L << 16);
+  Serial.print(y, 2);
+  Serial.print(' ');
+
+  // Kalkulasi Apparent Power
+  int64_t apparentRaw = sqrt(((int64_t)activeRaw) * activeRaw + ((int64_t)reactiveRaw) * reactiveRaw);
+  Serial.print("VA= ");
+  y = (float)apparentRaw / (1L << 16);
+  Serial.print(y, 2);
+  Serial.print(' ');
+
+  // Kalkulasi phase (cos Theta)
+  Serial.print("PF= ");
+  y = (float)activeRaw / apparentRaw;
+  Serial.print(y, 3);
+  Serial.print(' ');
+
+  Serial.println();
+
+  if (xx % 10 == 0)
+  {
+    Serial.println("-----BEFORE RESET-----");
+    readCalibRegs();
+
+    Serial2.end();
+
+    rn8209c_rstRX();
+
+    delay(1000);
+    // Serial2.begin(4800, SERIAL_8E1); // Parity Even, Hardware Serial
+    swserialbegin();
+
+    Serial.println("-----AFTER RESET-----");
+    readCalibRegs();
+
+    delay(1000);
+    setCalibRegs();
+
+    Serial.println("-----AFTER RECALIBRATION-----");
+    readCalibRegs();
+  }
+}
