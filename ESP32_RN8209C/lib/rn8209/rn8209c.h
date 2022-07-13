@@ -7,60 +7,67 @@
 #define DC 1
 
 // Register Definition
-#define ADSYSCON 0x00
-#define ADSYSCON_PGAIA_Pos 0
-#define ADSYSCON_PGAU_Pos 2
+enum reg_chanA : uint8_t
+{
+  ADSYSCON = 0x00,
+  ADEMUCON = 0x01,
+  ADHFConst = 0x02,
+  ADPStart = 0x03,
+  ADDStart = 0x04,
+  ADGPQA = 0x05,
+  ADGPQB = 0x06,
+  ADPhsA = 0x07,
+  ADPhsB = 0x08,
+  ADQPHSCAL = 0x09,
+  ADAPOSA = 0x0a,
+  ADAPOSB = 0x0b,
+  ADRPOSA = 0x0c,
+  ADRPOSB = 0x0d,
+  ADIARMSOS = 0x0e,
+  ADIBRMSOS = 0x0f,
+  ADIBGain = 0x10,
+  ADD2FPL = 0x11,
+  ADD2FPH = 0x12,
+  ADDCIAH = 0x13,
+  ADDCIBH = 0x14,
+  ADDCUH = 0x15,
+  ADDCL = 0x16,
+  ADEMUCON2 = 0x17,
+  ADPFCnt = 0x20,
+  ADDFcnt = 0x21,
+  ADIARMS = 0x22,
+  ADIBRMS = 0x23,
+  ADURMS = 0x24,
+  ADUFreq = 0x25,
+  ADPowerPA = 0x26,
+  ADPowerPB = 0x27,
+  ADPowerQ = 0x28,
+  ADEnergyP = 0x29,
+  ADEnergyP2 = 0x2a,
+  ADEnergyD = 0x2b,
+  ADEnergyD2 = 0x2c,
+  ADEMUStatus = 0x2d,
+  ADSPL_IA = 0x30,
+  ADSPL_IB = 0x31,
+  ADSPL_U = 0x32,
+  AD_IE = 0x40,
+  AD_IF = 0x41,
+  ADRIF = 0x42,
+  ADSysStatus = 0x43,
+  ADRData = 0x44,
+  ADWData = 0x45,
+  ADDeviceID = 0x7f
+};
 
-#define ADEMUCON 0x01  // Read pin Rx : 00 03 FB
-#define ADHFConst 0x02 // Read pin Rx : 10 00 ED
-#define ADPStart 0x03
-#define ADDStart 0x04 // Read pin Rx : 01 20 DA
-#define ADGPQA 0x05
-#define ADGPQB 0x06
-#define ADPhsA 0x07 // Read pin Rx : 00 F8
-#define ADPhsB 0x08 // Read pin Rx : 00 F7
-#define ADQPHSCAL 0x09
-#define ADAPOSA 0x0a
-#define ADAPOSB 0x0b // Read pin Rx : 00 00 F4
-#define ADRPOSA 0x0c
-#define ADRPOSB 0x0d   // Read pin Rx : 00 00 F2
-#define ADIARMSOS 0x0e // Read pin Rx : 00 00 F1
-#define ADIBRMSOS 0x0f
-#define ADIBGain 0x10
-#define ADD2FPL 0x11
-#define ADD2FPH 0x12
-#define ADDCIAH 0x13 // Read pin Rx : 00 00 EC
-#define ADDCIBH 0x14
-#define ADDCUH 0x15 // Read pin Rx : 00 00 EA
-#define ADDCL 0x16  // Read pin Rx : 00 00 E9
-#define ADEMUCON2 0x17
-#define ADPFCnt 0x20 // Read pin Rx : 00 06 D9
-#define ADDFcnt 0x21
-#define ADIARMS 0x22
-#define ADIBRMS 0x23 // Read pin Rx : 00 00 00 DC
-#define ADURMS 0x24
-#define ADUFreq 0x25   // Read pin Rx : 22 F5 C3
-#define ADPowerPA 0x26 // Read pin Rx : 00 00 03 B4 22
-#define ADPowerPB 0x27
-#define ADPowerQ 0x28 // Reakif Power
-#define ADEnergyP 0x29
-#define ADEnergyP2 0x2a // Read pin Rx : 00 00 00 D6
-#define ADEnergyD 0x2b
-#define ADEnergyD2 0x2c // Read pin Rx : 00 00 00 D3
-#define ADEMUStatus 0x2d
-#define ADSPL_IA 0x30
-#define ADSPL_IB 0x31 // Read pin Rx : 00 00 00 CE
-#define ADSPL_U 0x32
-#define AD_IE 0x40 // Read pin Rx : 00 BF
-#define AD_IF 0x41
-#define ADRIF 0x42
-#define ADSysStatus 0x43 // Read pin Rx : 01 BB
-#define ADRData 0x44
-#define ADWData 0x45    // Read pin Rx : 00 00 BA
-#define ADDeviceID 0x7f // Read pin Rx : 82 09 00 F5
-#define WriteEn 0xea
-#define Read 0x00
-#define w_rite 0x80 //  di or | dengan address
+// Setting Current Channel A analog gain selection, default 16x
+#define ADSYSCON_PGAIA_Pos 0
+// Setting Voltage channel analog gain selection
+#define ADSYSCON_PGAU_Pos 2
+// Setting Disable/Enable High Pass Filter for DC Measurement
+#define ADEMUCON_HPFIOFF_Pos 6 // En=0;Dis=1; CURRENT digital high-pass filter
+#define ADEMUCON_HPFUOFF_Pos 5 // En=0;Dis=1; VOLTAGE digital high-pass filter
+
+#define SPECIAL_CMD 0xEA
 
 class RN8209C
 {
@@ -72,7 +79,7 @@ public:
    *
    * @param rx_pin GPIO pin used for RX
    * @param tx_pin GPIO pin used for TX and RESET
-   * @param mode measuring AC or DC.
+   * @param mode measuring AC or DC. Defaults to AC.
    */
   RN8209C(int8_t rx_pin, int8_t tx_pin, uint8_t mode = AC);
 
@@ -97,6 +104,7 @@ public:
    * @param len Number of elements in array
    */
   void write(uint8_t reg_address, uint8_t *data, size_t len);
+  void write(uint8_t reg_address, const uint8_t *data, size_t len);
 
   /**
    * @brief Read data from device register
@@ -183,14 +191,13 @@ public:
    */
   void rx_reset();
 
-  
   int8_t port_tx;
   int8_t port_rx;
   SoftwareSerial EMserial;
-  
+
   /**
-   * @brief Buffer when reading data in array of bytes 
-   * 
+   * @brief Buffer when reading data in array of bytes
+   *
    */
   uint8_t buffe[5];
 

@@ -41,6 +41,12 @@ void RN8209C::write(uint8_t reg_address, uint8_t *data, size_t len)
   EMserial.write((uint8_t)checksum);
 }
 
+// Overload for writing known constants (such as calibration val)
+void RN8209C::write(uint8_t reg_address, const uint8_t *data, size_t len)
+{
+  write(reg_address,(uint8_t *)data,len);
+}
+
 int32_t RN8209C::read(uint8_t reg_address, uint8_t *rx_array, size_t len)
 {
   uint8_t cmd = reg_address;
@@ -136,42 +142,42 @@ void RN8209C::readCalibRegs()
 void RN8209C::setCalibRegs()
 {
   // Write settings
-  unsigned char writeEnable[] = {0xE5};
-  unsigned char writeProtect[] = {0xDC};
+  const uint8_t writeEnable[] = {0xE5};
+  const uint8_t writeProtect[] = {0xDC};
 
   // Analog Gain Setup
-  unsigned char sysconByte[] = {0x16, (0b10 << ADSYSCON_PGAIA_Pos)};
+  const uint8_t sysconByte[] = {0x16, (0b10 << ADSYSCON_PGAIA_Pos)};
 
   // Energy CLR
-  unsigned char emuconEnergyCLRByte[] = {0b01 << 7, 0x03 << 0}; // 14 April 2022
+  const uint8_t emuconEnergyCLRByte[] = {0b01 << 7, 0x03 << 0}; // 14 April 2022
 
   // Offset Correction
-  unsigned long offsetActive = 0;
-  unsigned char offsetActiveByte[] = {(uint8_t)(offsetActive >> 8), (uint8_t)offsetActive};
+  const int16_t offsetActive = 0;
+  const uint8_t offsetActiveByte[] = {(uint8_t)(offsetActive >> 8), (uint8_t)offsetActive};
 
   // Gain Correction
   const int16_t gainActive = 12640; // 28 Maret
-  unsigned char gainActiveByte[] = {(uint8_t)(gainActive >> 8), (uint8_t)gainActive};
+  const uint8_t gainActiveByte[] = {(uint8_t)(gainActive >> 8), (uint8_t)gainActive};
 
   // Phase Correction
-  unsigned char phaseByte[] = {40};
+  const uint8_t phaseByte[] = {40};
 
   // Reactive Power Correction
   const int16_t offsetReactive = 0; // 28 Maret
-  unsigned char offsetReactiveByte[] = {(uint8_t)(offsetReactive >> 8), (uint8_t)offsetReactive};
+  const uint8_t offsetReactiveByte[] = {(uint8_t)(offsetReactive >> 8), (uint8_t)offsetReactive};
 
   const int16_t phaseReactive = -3072; // 28 Maret
   unsigned char phaseReactiveByte[] = {(uint8_t)(phaseReactive >> 8), (uint8_t)phaseReactive};
 
   // Enter calibration settings
-  write(WriteEn, writeEnable, 1);
-  write(ADSYSCON, sysconByte, 2);
-  write(ADAPOSA, offsetActiveByte, 2);
-  write(ADGPQA, gainActiveByte, 2);
-  write(ADPhsA, phaseByte, 1);
-  write(ADRPOSA, offsetReactiveByte, 2);
-  write(ADQPHSCAL, phaseReactiveByte, 2);
-  write(WriteEn, writeProtect, 1);
+  write(SPECIAL_CMD, (uint8_t *)writeEnable, 1);
+  write(ADSYSCON, (uint8_t *)sysconByte, 2);
+  write(ADAPOSA, (uint8_t *)offsetActiveByte, 2);
+  write(ADGPQA, (uint8_t *)gainActiveByte, 2);
+  write(ADPhsA, (uint8_t *)phaseByte, 1);
+  write(ADRPOSA, (uint8_t *)offsetReactiveByte, 2);
+  write(ADQPHSCAL, (uint8_t *)phaseReactiveByte, 2);
+  write(SPECIAL_CMD, (uint8_t *)writeProtect, 1);
 }
 
 uint32_t RN8209C::arr2raw(uint8_t *arr, size_t len)
@@ -184,7 +190,6 @@ uint32_t RN8209C::arr2raw(uint8_t *arr, size_t len)
   return out;
 }
 
-// TODO: pisahin fungsi rx_reset ke beberapa fungsi lebih kecil
 void RN8209C::rx_reset()
 {
   pinMode(port_tx, OUTPUT);
@@ -197,7 +202,7 @@ void RN8209C::rx_reset()
 float RN8209C::get_energy()
 {
   float y;
-  while (read(ADEnergyP, buffe, 4 - 1))
+  while (read(ADEnergyP2, buffe, 4 - 1))
   {
     delay(1000);
     ESP_LOGW("EM", "Energy read checksum failed");

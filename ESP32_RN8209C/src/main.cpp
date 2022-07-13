@@ -10,7 +10,9 @@ void setup()
   Serial.println("Halo");
 
   delay(500); // HARUS ADA AGAR ISR SERVICE BISA START
-  RN8209C EM_0(19, 21);
+
+  // Inget pin 35,34 gabisa dipake
+  RN8209C EM_0(19,21);
   RN8209C EM_1(5, 18);
   // RN8209C EM_2(22, 23);
 
