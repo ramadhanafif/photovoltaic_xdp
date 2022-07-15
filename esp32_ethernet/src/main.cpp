@@ -56,7 +56,7 @@ void setup()
     Serial.println();
     Serial.println(postData);
     Serial.println();
-
+    Serial.println("--------------------");
 
     client.println("POST /data HTTP/1.1");
     client.print("Host: ");
@@ -67,15 +67,15 @@ void setup()
     client.println(strlen(postData));
     client.println();
     client.println(postData);
-    delay(100);
+    delay(1000);
   }
 
   while (1)
   { // read server response
     if (client.available())
     {
-      char c = client.read();
-      Serial.print(c);
+      String c = client.readString();
+      Serial.println(c);
     }
     else
     {
