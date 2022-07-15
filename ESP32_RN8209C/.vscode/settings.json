@@ -7,6 +7,7 @@
     "exception": "cpp",
     "iosfwd": "cpp",
     "new": "cpp",
-    "ostream": "cpp"
+    "ostream": "cpp",
+    "functional": "cpp"
   }
 }

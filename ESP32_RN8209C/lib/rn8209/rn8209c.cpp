@@ -5,7 +5,7 @@ RN8209C::RN8209C(int8_t rx_pin, int8_t tx_pin, measurementMode mode)
   port_tx = tx_pin;
   port_rx = rx_pin;
 
-  rx_reset();
+  reset(RX_PIN);
 
   uart_start();
 }
@@ -19,6 +19,8 @@ int32_t RN8209C::uart_start()
     return 0;
   else
     return 1; // GPIO assignment failed
+// #else //placeholder for another type of serial libary.
+
 #endif
 
   // TODO: hardwareserial, arduino-softwareserial
@@ -207,13 +209,22 @@ uint32_t RN8209C::arr2raw(uint8_t *arr, size_t len)
 //   return arr; // return pointer to arr
 // }
 
-void RN8209C::rx_reset()
+void RN8209C::reset(resetMode mode)
 {
-  pinMode(port_tx, OUTPUT);
-  digitalWrite(port_tx, LOW);
-  delay(50);
-  digitalWrite(port_tx, HIGH);
-  delay(50);
+  switch (mode)
+  {
+  case RX_PIN:
+    pinMode(port_tx, OUTPUT);
+    digitalWrite(port_tx, LOW);
+    delay(50);
+    digitalWrite(port_tx, HIGH);
+    delay(50);
+    break;
+
+  case SPEC_REG:
+    // TODO: kerjain ini
+    break;
+  }
 }
 
 float RN8209C::get_AccumulatedEnergy()

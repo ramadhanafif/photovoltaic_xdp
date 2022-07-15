@@ -3,6 +3,13 @@
 #include <SoftwareSerial.h>
 
 // Measurement mode
+enum resetMode : uint8_t
+{
+  RX_PIN,
+  SPEC_REG //Not available yet
+};
+
+// Measurement mode
 enum measurementMode : uint8_t
 {
   AC,
@@ -88,6 +95,7 @@ public:
   /**
    * @brief Construct a new RN8209C object.
    * Starts UART communication.
+   * Only support software serial pins!
    *
    * @param rx_pin GPIO pin used for RX
    * @param tx_pin GPIO pin used for TX and RESET
@@ -200,9 +208,9 @@ public:
 
   /**
    * @brief Global reset by pulling down RX Pin.
-   * To reset: uart_stop(), rx_reset(), uart_start(), setCalibRegs()
+   * 
    */
-  void rx_reset();
+  void reset(resetMode mode);
 
   int8_t port_tx;
   int8_t port_rx;
