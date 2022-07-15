@@ -4,7 +4,7 @@ RN8209C::RN8209C(int8_t rx_pin, int8_t tx_pin, measurementMode mode)
 {
   port_tx = tx_pin;
   port_rx = rx_pin;
-
+  _mode = mode;
   reset(RX_PIN);
 
   uart_start();
@@ -19,7 +19,7 @@ int32_t RN8209C::uart_start()
     return 0;
   else
     return 1; // GPIO assignment failed
-// #else //placeholder for another type of serial libary.
+              // #else //placeholder for another type of serial libary.
 
 #endif
 
@@ -105,6 +105,8 @@ void RN8209C::readCalibRegs()
   uint8_t bacaADRPOSA[3];
   uint8_t bacaADQPHSCAL[3];
   uint8_t bacaADEMUCON[3];
+  uint8_t bacaADDCIAH[3];
+  uint8_t bacaADDCUH[3];
 
   int16_t sysconRead;
   int16_t offsetActiveRead;
@@ -112,6 +114,8 @@ void RN8209C::readCalibRegs()
   int16_t offsetReactiveRead;
   int16_t phaseReactiveRead;
   int16_t ADEMUCONRead;
+  int16_t offsetCurrentRead;
+  int16_t offsetVoltageRead;
 
   read(ADSYSCON, bacaADSYSCON, 2);
   sysconRead = arr2raw(bacaADSYSCON, 2);
@@ -146,6 +150,24 @@ void RN8209C::readCalibRegs()
   ADEMUCONRead = arr2raw(bacaADEMUCON, 2);
   Serial.print("ADEMUCON (0x3) : 0x");
   Serial.println(ADEMUCONRead, HEX);
+
+  if (_mode == DC)
+  {
+    read(ADEMUCON, bacaADEMUCON, 2);
+    ADEMUCONRead = arr2raw(bacaADEMUCON, 2);
+    Serial.print("ADEMUCON (0x63) : 0x");
+    Serial.println(ADEMUCONRead, HEX);
+
+    read(ADDCIAH, bacaADDCIAH, 2);
+    offsetCurrentRead = arr2raw(bacaADDCIAH,2);
+    Serial.print("ADDCIAH (-150) : ");
+    Serial.println(offsetCurrentRead);
+
+    read(ADDCUH, bacaADDCUH, 2);
+    offsetVoltageRead = arr2raw(bacaADDCUH,2);
+    Serial.print("ADDCUH (12) : ");
+    Serial.println(offsetVoltageRead);
+  }
 }
 
 void RN8209C::setCalibRegs()
@@ -158,7 +180,7 @@ void RN8209C::setCalibRegs()
   const uint8_t sysconByte[] = {0x16, (0b10 << ADSYSCON_PGAIA_Pos)};
 
   // Energy CLR
-  const uint8_t emuconEnergyCLRByte[] = {0b01 << 7, 0x03 << 0}; // 14 April 2022
+  const uint8_t emuconEnergyCLRByte[] = {0b01 << 7, 0x03 << 0};
 
   // Offset Correction
   const int16_t offsetActive = 0;
@@ -178,14 +200,48 @@ void RN8209C::setCalibRegs()
   const int16_t phaseReactive = -3072; // 28 Maret
   unsigned char phaseReactiveByte[] = {(uint8_t)(phaseReactive >> 8), (uint8_t)phaseReactive};
 
+  /******************DC SETTINGS******************/
+  // Disable IA Channel digital High Pass Filter if bit5&6 = 1
+  // unsigned char ademuconByte[] = { 0x16,(0b100011 << ADEMUCON_PGAIA_Pos) };
+  unsigned char ademuconByte[] = {0x00, (0x03 | (1 << ADEMUCON_HPFIOFF_Pos) | (1 << ADEMUCON_HPFUOFF_Pos))};
+
+  // DC Offset Correction
+  /*Current
+  semakin kecil, hasil arus semakin besar
+  *const int16_t offsetCurrent = 0;  //06 Juli - %eIRMS=0.89%
+  %e semakin kecil ketika -150
+  -158 10 A jadi 10.0183
+  */
+  const int16_t offsetCurrent = -150; // offset -150 menghasilkan error current < 0.5%
+  unsigned char offsetCurrentByte[] = {(uint8_t)(offsetCurrent >> 8), (uint8_t)offsetCurrent};
+
+  /*Voltage
+  semakin kecil nilai offset maka semakin besar nilai tegangan
+  *const int16_t offsetVoltage = 0;  //06 Juli - %eVRMS = 0.63%
+  *%e semakin kecil ketika 12
+  */
+  const int16_t offsetVoltage = 12; // kalau ofset 12 error jadi < 0.5%
+  unsigned char offsetVoltageByte[] = {(uint8_t)(offsetVoltage >> 8), (uint8_t)offsetVoltage};
+
+  /****************DC SETTINGS END****************/
+
   // Enter calibration settings
   write(SPEC_CMD, writeEnable, 1);
+
   write(ADSYSCON, sysconByte, 2);
   write(ADAPOSA, offsetActiveByte, 2);
   write(ADGPQA, gainActiveByte, 2);
   write(ADPhsA, phaseByte, 1);
   write(ADRPOSA, offsetReactiveByte, 2);
   write(ADQPHSCAL, phaseReactiveByte, 2);
+
+  if (_mode == DC)
+  {
+    write(ADEMUCON, ademuconByte, 2);
+    write(ADDCIAH, offsetCurrentByte, 2);
+    write(ADDCUH, offsetVoltageByte, 2);
+  }
+
   write(SPEC_CMD, writeProtect, 1);
 }
 

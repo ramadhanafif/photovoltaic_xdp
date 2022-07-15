@@ -229,4 +229,5 @@ private:
   int32_t irmsRaw;
   int32_t vrmsRaw;
   int32_t energyPRaw;
+  uint8_t _mode;
 };
