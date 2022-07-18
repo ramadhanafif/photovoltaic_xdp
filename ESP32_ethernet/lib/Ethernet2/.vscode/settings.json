@@ -1,0 +1,12 @@
+{
+    "files.associations": {
+        "*.tcc": "cpp",
+        "unordered_map": "cpp",
+        "istream": "cpp",
+        "numeric": "cpp",
+        "ostream": "cpp",
+        "ios": "cpp",
+        "locale": "cpp",
+        "random": "cpp"
+    }
+}
