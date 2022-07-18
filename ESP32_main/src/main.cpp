@@ -15,63 +15,37 @@
 {
   "idUser": 1234512345,
   "AC0": {
-    "E": 3000,
-    "Vrms": 221,
-    "Irms": 0.08,
-    "P": 12312,
-    "Q": 12312,
-    "S": 12312
+    "E": 0,
+    "Vrms": 211.9013214,
+    "Irms": 0.013553944,
+    "P": 1.240600586,
+    "Q": 0.383056641,
+    "S": 1.29838562,
+    "PF": 0.955494702
   },
   "DC": {
-    "V": 221,
-    "I": 0.07,
-    "P": 300
+    "V": 0.533682168,
+    "I": 0.085859008,
+    "P": 0.032104492,
+    "E": 0
   },
   "AC1": {
-    "E": 12312,
-    "Vrms": 12312,
-    "Irms": 12312,
-    "P": 12312,
-    "Q": 12312,
-    "S": 12312
+    "E": 0,
+    "Vrms": 0.251197129,
+    "Irms": 0.001029706,
+    "P": 0,
+    "Q": 0,
+    "S": 0.000030518,
+    "PF": 1
   }
 }
-*/
-
-/* Example program
-pvJson doc;
-
-doc["idUser"] = 1234512345;
-
-JsonObject AC0 = doc.createNestedObject("AC0");
-AC0["E"] = 3000;
-AC0["Vrms"] = 221;
-AC0["Irms"] = 0.08;
-AC0["P"] = 12312;
-AC0["Q"] = 12312;
-AC0["S"] = 12312;
-
-JsonObject DC = doc.createNestedObject("DC");
-DC["V"] = 221;
-DC["I"] = 0.07;
-DC["P"] = 300;
-
-JsonObject AC1 = doc.createNestedObject("AC1");
-AC1["E"] = 12312;
-AC1["Vrms"] = 12312;
-AC1["Irms"] = 12312;
-AC1["P"] = 12312;
-AC1["Q"] = 12312;
-AC1["S"] = 12312;
-
-serializeJson(doc, output);
 */
 
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include "rn8209c.h"
 #include "Ethernet2.h"
-#include <SPI.h>
+// #include <SPI.h>
 
 // Was calculated in https://arduinojson.org/v6/assistant/
 typedef StaticJsonDocument<384> pvJson;
@@ -175,6 +149,8 @@ void loop()
   // Serial.print(EM2_AC->calc_powerfactor(), 2);
   // Serial.println();
 
+  // MEASURE starts
+
   pvJson pvDataJ;
 
   pvDataJ["idUser"] = 1234512345;
@@ -209,18 +185,24 @@ void loop()
 
   Serial.print(selection, HEX);
 
+  // MEASURE ends
+  // UPLOAD starts
+
   switch (selection)
   {
   case 0:
     Serial.println("->wifi!");
+    // wifi_upload(pvDataJ);
     break;
 
   case 1:
     Serial.println("->gprs!");
+    // gprs_upload(pvDataJ);
     break;
 
   case 2:
     Serial.println("->ethernet!");
+    ethernet_upload(pvDataJ);
     break;
 
   default: // 3
