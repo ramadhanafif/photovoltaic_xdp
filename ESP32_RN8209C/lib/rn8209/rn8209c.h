@@ -223,8 +223,6 @@ public:
    */
   void reset(resetMode mode);
 
-  int8_t port_tx;
-  int8_t port_rx;
   SoftwareSerial EMserial;
 
   /**
@@ -241,4 +239,7 @@ private:
   int32_t vrmsRaw;
   int32_t energyPRaw;
   uint8_t _mode;
+
+  int8_t _tx_pin;
+  int8_t _rx_pin;
 };

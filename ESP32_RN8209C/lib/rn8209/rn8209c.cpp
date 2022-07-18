@@ -2,28 +2,31 @@
 
 RN8209C::RN8209C(int8_t rx_pin, int8_t tx_pin, measurementMode mode)
 {
-  port_tx = tx_pin;
-  port_rx = rx_pin;
+  _rx_pin = rx_pin;
+  _tx_pin = tx_pin;
+
   _mode = mode;
   reset(RX_PIN);
 
-  uart_start();
+  if (uart_start())
+  {
+    ESP_LOGE("SWSERIAL", "SERIAL PIN (%d, %d) FAILED TO START", _rx_pin, _tx_pin);
+  };
 }
 
 int32_t RN8209C::uart_start()
 {
 #ifdef ESP32
-  EMserial.begin(4800, SWSERIAL_8E1, port_rx, port_tx, false);
+  EMserial.begin(4800, SWSERIAL_8E1, _rx_pin, _tx_pin, false);
 
   if (EMserial) // GPIO initialization ok, assigned pins can be used
     return 0;
   else
     return 1; // GPIO assignment failed
-              // #else //placeholder for another type of serial libary.
+              // macro placeholder for another type of serial libary (hw serial, arduino serial).
 
 #endif
 
-  // TODO: hardwareserial, arduino-softwareserial
 }
 
 void RN8209C::uart_stop()
@@ -278,10 +281,10 @@ void RN8209C::reset(resetMode mode)
   switch (mode)
   {
   case RX_PIN:
-    pinMode(port_tx, OUTPUT);
-    digitalWrite(port_tx, LOW);
+    pinMode(_tx_pin, OUTPUT);
+    digitalWrite(_tx_pin, LOW);
     delay(50);
-    digitalWrite(port_tx, HIGH);
+    digitalWrite(_tx_pin, HIGH);
     delay(50);
     break;
 
