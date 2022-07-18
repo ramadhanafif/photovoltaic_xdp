@@ -6,7 +6,7 @@
 enum resetMode : uint8_t
 {
   RX_PIN,
-  SPEC_REG //Not available yet
+  SPEC_CMD_RST // Untested
 };
 
 // Measurement mode
@@ -83,9 +83,19 @@ enum bitPosHPFSelect_chanA : uint8_t
   ADEMUCON_HPFUOFF_Pos = 5  // En=0;Dis=1; VOLTAGE digital high-pass filter
 };
 
-enum spec_cmd : uint8_t
+enum spec_reg : uint8_t
 {
-  SPEC_CMD = 0xEA
+  SPEC_CMD_REG = 0xEA
+};
+
+// Special commands (page 32)
+enum spec_data : uint8_t
+{
+  WE = 0xE5,         // Write Enable
+  WP = 0xDC,         // Write Protect
+  SEL_CHAN_A = 0x5A, // Current Channel A Selection
+  SEL_CHAN_B = 0xA5, // Current Channel B Selection
+  SPEC_RESET = 0xFA  // Reset
 };
 
 class RN8209C
@@ -125,6 +135,7 @@ public:
    */
   void write(uint8_t reg_address, uint8_t *data, size_t len);
   void write(uint8_t reg_address, const uint8_t *data, size_t len);
+  void write(uint8_t reg_address, uint8_t data, size_t len = 1);
 
   /**
    * @brief Read data from device register
@@ -208,7 +219,7 @@ public:
 
   /**
    * @brief Global reset by pulling down RX Pin.
-   * 
+   *
    */
   void reset(resetMode mode);
 

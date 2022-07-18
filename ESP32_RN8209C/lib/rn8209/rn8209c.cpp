@@ -56,6 +56,13 @@ void RN8209C::write(uint8_t reg_address, const uint8_t *data, size_t len)
   write(reg_address, (uint8_t *)data, len);
 }
 
+// Overload for writing a byte
+void RN8209C::write(uint8_t reg_address, uint8_t data, size_t len)
+{
+  // Default len is set to 1 in headerfile, not removed to avoid confusion
+  write(reg_address, &data, len);
+}
+
 int32_t RN8209C::read(uint8_t reg_address, uint8_t *rx_array, size_t len)
 {
   uint8_t cmd = reg_address;
@@ -159,12 +166,12 @@ void RN8209C::readCalibRegs()
     Serial.println(ADEMUCONRead, HEX);
 
     read(ADDCIAH, bacaADDCIAH, 2);
-    offsetCurrentRead = arr2raw(bacaADDCIAH,2);
+    offsetCurrentRead = arr2raw(bacaADDCIAH, 2);
     Serial.print("ADDCIAH (-150) : ");
     Serial.println(offsetCurrentRead);
 
     read(ADDCUH, bacaADDCUH, 2);
-    offsetVoltageRead = arr2raw(bacaADDCUH,2);
+    offsetVoltageRead = arr2raw(bacaADDCUH, 2);
     Serial.print("ADDCUH (12) : ");
     Serial.println(offsetVoltageRead);
   }
@@ -225,8 +232,8 @@ void RN8209C::setCalibRegs()
 
   /****************DC SETTINGS END****************/
 
-  // Enter calibration settings
-  write(SPEC_CMD, writeEnable, 1);
+  // Enable writing
+  write(SPEC_CMD_REG, WE, 1);
 
   write(ADSYSCON, sysconByte, 2);
   write(ADAPOSA, offsetActiveByte, 2);
@@ -242,7 +249,8 @@ void RN8209C::setCalibRegs()
     write(ADDCUH, offsetVoltageByte, 2);
   }
 
-  write(SPEC_CMD, writeProtect, 1);
+  // Enable write protection, disable writing
+  write(SPEC_CMD_REG, WP, 1);
 }
 
 uint32_t RN8209C::arr2raw(uint8_t *arr, size_t len)
@@ -277,8 +285,8 @@ void RN8209C::reset(resetMode mode)
     delay(50);
     break;
 
-  case SPEC_REG:
-    // TODO: kerjain ini
+  case SPEC_CMD_RST: // Untested
+    write(SPEC_CMD_REG, SPEC_RESET, 1);
     break;
   }
 }
