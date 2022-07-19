@@ -83,7 +83,7 @@ void setup()
   // new = malloc with better exception handling
   EM0_AC = new RN8209C(05, 18, AC);
   EM1_DC = new RN8209C(27, 26, DC);
-  EM2_AC = new RN8209C(25, 33, AC);
+  EM2_AC = new RN8209C(32, 33, AC);
 
   sizeof(RN8209C);
 
@@ -181,7 +181,7 @@ void loop()
 
   serializeJsonPretty(pvDataJ, Serial);
 
-  byte selection = digitalRead(SEL1) << 1 | digitalRead(SEL0);
+  byte selection = digitalRead(SEL0) << 1 | digitalRead(SEL1);
 
   Serial.print(selection, HEX);
 
