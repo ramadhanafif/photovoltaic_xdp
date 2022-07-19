@@ -1,7 +1,7 @@
 /**
  * @file main.cpp
  * @author Muhammad Afif Ramadhan
- * @brief Kode paling dasar untuk PV
+ * @brief Kode dasar, proof of concept untuk PV
  * Terdiri dari 2 bagian utama
  * -> Measure: menangkap data dari energy meter, menghasilkan data PV berupa json
  * -> Upload: upload data menggunakan media yang dipilih dari pin SEL[0] dan SEL[1]
