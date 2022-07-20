@@ -13,7 +13,7 @@
 #include <Wire.h>
 #include <AT24CX.h>
 
-// EEPROM object
+// EEPROM object, set A0 A1 A2
 AT24C32 mem(7);
 
 // Pointer space address: 0 - 2047
@@ -27,9 +27,19 @@ const uint32_t N_faddr = 512;
 
 // Convert float addressing to byte addressing
 // Only take first 9 bit, creating circular effect
-inline uint32_t addr_conv(uint32_t faddr)
+inline uint32_t faddr_conv(uint32_t faddr_base, uint32_t faddr)
 {
-  return (faddr & 0x1FF) * sizeof(float);
+  return ((faddr & 0x1FF) + faddr_base) * sizeof(float);
+}
+
+float read_dat(uint32_t faddr)
+{
+  return mem.readFloat(faddr_conv(dat_faddr_base, faddr));
+}
+
+uint32_t read_ptr(uint32_t faddr)
+{
+  return mem.readLong(faddr_conv(ptr_faddr_base, faddr));
 }
 
 // Return faddr
@@ -37,45 +47,45 @@ uint32_t get_last_faddr(uint32_t *ptr)
 {
   uint32_t current_ptr, next_ptr;
 
-  for (size_t i = 0; i < N_faddr; i++)
+  for (size_t faddr = 0; faddr < N_faddr; faddr++)
   {
-    current_ptr = mem.read(ptr_faddr_base + addr_conv(i));
-    next_ptr = mem.read(ptr_faddr_base + addr_conv(i + 1)); // 10th bit overflow handled in conversion
+    current_ptr = read_ptr(faddr);
+    next_ptr = read_ptr(faddr + 1); // 10th bit overflow handled in faddr_conv
 
-    if (next_ptr - current_ptr != 1)
+    if ((next_ptr == 0xFFFFFFFF) | // previous reset has not reached 512 data-write
+        (next_ptr - current_ptr != 1))
     {
-      *ptr = current_ptr;
-      return i;
-    }
-  }
+      ESP_LOGI("MEM", "current ptr %X, next ptr %X", current_ptr, next_ptr);
 
-  /**
-   * All address has been read and no current pointer found
-   * Possible causes: all ptr is 0xFFFF_FFFF
-   * Therefore in blank state, start from 0
-   */
-  return 0;
+      if (faddr != 0)
+        *ptr = current_ptr;
+      else // faddr==0 & nextptr = 0xffff_ffff. Therefore rest of memory is blank
+        *ptr = 0;
+
+      return faddr;
+    }
+    // all cases considered.
+  }
 }
 
 // Write data and pointer
-uint32_t write_mem(float data, uint32_t *ptr, uint32_t faddr)
+void write_mem(float data, uint32_t ptr, uint32_t faddr)
 {
   // write data to mem
-  mem.writeFloat(dat_faddr_base + addr_conv(faddr), data);
+  mem.writeFloat(faddr_conv(dat_faddr_base, faddr), data);
 
   // write pointer to mem
-  mem.writeLong(ptr_faddr_base + addr_conv(faddr), *ptr);
-  (*ptr)++;
-  return faddr + 1;
+  mem.writeLong(faddr_conv(ptr_faddr_base, faddr), ptr);
 }
 
 void memwipe()
 {
-  Serial.print("Preset all data to 0xFF");
+  Serial.print("Reset all data to 0xFF");
   for (int j = 0; j < 4095; j++)
   {
     mem.write(j, 0xFF);
-    Serial.print(".");
+    if (j % 1000 == 0)
+      Serial.print(".");
   }
   Serial.println();
 }
@@ -92,47 +102,51 @@ void setup()
 // main loop
 void loop()
 {
+
   // memwipe();
 
-  float arr[800];
-  uint32_t randstart = random(3, 511);
-  uint32_t faddr = randstart;
-  uint32_t i_offset = random(0,200);
-  uint32_t i = i_offset;
+  // float data;
+  // uint32_t num_writes = random(500, 700);
+  // uint32_t faddr_start = random(3, 511);
+  // uint32_t faddr = faddr_start;
+  // uint32_t ptr = 0;
 
-  while (faddr < randstart + 512)
+  // delay(1000);
+  // Serial.printf("Writing %d times, starting at %d\n", num_writes, faddr_start);
+
+  // while (faddr < faddr_start + num_writes)
+  // {
+  //   data = (float)random(10000, 50000) / random(1, 10);
+  //   Serial.printf("Writing in [%3d], with pointer %d, data %f\n", faddr, ptr, data);
+  //   write_mem(data, ptr, faddr);
+  //   faddr++;
+  //   ptr++;
+  //   // TODO: buat demo random tulis, terus dia cari last addrnya, terus lanjut tulis dari start itu
+  // }
+
+  // delay(10000);
+
+  for (uint32_t j = 0; j < N_faddr; j++)
   {
-    arr[i-i_offset] = (float)random(10000, 50000) / random(1, 10);
-    Serial.printf("Writing in [%3d]  %f\n", faddr, arr[i-i_offset]);
-    faddr=write_mem(arr[i-i_offset], &i, faddr);
-    // TODO: buat demo random tulis, terus dia cari last addrnya, terus lanjut tulis dari start itu
+    Serial.printf("faddr %3d, with pointer %d <-> data %6f\n",
+                  j,
+                  read_ptr(j),
+                  read_dat(j));
+
+    // if (arr[j] == mem.readFloat(faddr_conv(dat_faddr_base, j)))
+    //   Serial.println(" OK");
+    // else
+    //   Serial.println(" FAIL");
   }
 
-  uint32_t ptr = 0;
-  faddr = get_last_faddr(&ptr);
-  Serial.printf("faddr = %d, ptr at faddr = %d\n",faddr,ptr);
+  delay(1000);
+  uint32_t last_ptr = 0;
+  uint32_t last_faddr = get_last_faddr(&last_ptr);
 
-  // {
-  //   arr[i] = (float)random(10000, 50000) / random(1, 10);
-  //   Serial.printf("Writing in [%3d]  %f\n", i, arr[i]);
-  //   write_mem(arr[i], &i);
-  // }
-
-  // for (uint32_t j = 0; j < 512; j++)
-  // {
-  //   // Address offset from base
-  //   uint32_t addr_off = j * sizeof(float);
-
-  //   Serial.printf("[%4d] = %3d <-> %f",
-  //                 addr_off,
-  //                 mem.readLong(addr_ptrbase + addr_off),
-  //                 mem.readFloat(addr_off + addr_datbase));
-
-  //   if (arr[j] == mem.readFloat(addr_off + addr_datbase))
-  //     Serial.println(" OK");
-  //   else
-  //     Serial.println(" FAIL");
-  // }
+  Serial.printf("faddr is = %d with pointer %d, data %f",
+                last_faddr,
+                last_ptr,
+                read_dat(last_faddr));
 
   // stop
   while (1)
